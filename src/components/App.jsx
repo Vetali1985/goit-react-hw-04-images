@@ -46,7 +46,6 @@ export default function App() {
     setPage(state => state + 1);
   };
 
-  // const { images, status } = useState;
   return (
     <Wrapper>
       <SearchBar onSubmit={handleFormSubmit} />
