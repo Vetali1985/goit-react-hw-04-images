@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 
 import { ToastContainer } from 'react-toastify';
 
@@ -12,56 +12,51 @@ import api from '../service/FetchApi';
 import 'react-toastify/dist/ReactToastify.css';
 import { Wrapper } from './App.styled';
 
-class App extends Component {
-  state = {
-    inputValue: '',
-    page: 1,
-    status: 'idle',
-    images: [],
-    error: null,
-  };
+export default function App() {
+  const [inputValue, setInputValue] = useState('');
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('idle');
+  const [images, setImages] = useState([]);
 
-  componentDidUpdate = (prevProps, prevState) => {
-    const { inputValue, page } = this.state;
-    if (prevState.inputValue !== inputValue || prevState.page !== page) {
-      this.setState({ status: 'pending' });
+  useEffect(() => {
+    if (inputValue && page) {
+      setStatus('pending');
 
       api(inputValue, page)
         .then(resp => {
-          const images = resp.hits;
-          this.setState(prevState => ({
-            images: [...prevState.images, ...images],
-            status: 'resolved',
-          }));
+          if (resp.total === 0) {
+            setStatus('rejected');
+          }
+          setImages(prevState => [...prevState, ...resp.hits]);
+          setStatus('resolved');
         })
         .catch(error => {
-          this.setState({ error, status: 'rejected' });
+          setStatus('rejected');
         });
     }
+  }, [inputValue, page]);
+
+  const handleFormSubmit = inputValue => {
+    setInputValue(inputValue);
+    setPage(1);
+    setImages([]);
   };
 
-  handleFormSubmit = inputValue => {
-    this.setState({ inputValue: inputValue, images: [], page: 1 });
+  const loadMore = () => {
+    setPage(state => state + 1);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-  };
+  // const { images, status } = useState;
+  return (
+    <Wrapper>
+      <SearchBar onSubmit={handleFormSubmit} />
+      {images && <ImageGallery data={images} />}
+      {status === 'pending' && <Loader />}
+      {images.length >= 12 && status === 'resolved' && (
+        <Button onClick={loadMore} />
+      )}
 
-  render() {
-    const { images, status } = this.state;
-    return (
-      <Wrapper>
-        <SearchBar onSubmit={this.handleFormSubmit} />
-        {images && <ImageGallery data={images} />}
-        {status === 'pending' && <Loader />}
-        {images.length >= 12 && status === 'resolved' && (
-          <Button onClick={this.loadMore} />
-        )}
-
-        <ToastContainer />
-      </Wrapper>
-    );
-  }
+      <ToastContainer />
+    </Wrapper>
+  );
 }
-export default App;
